@@ -14,22 +14,26 @@ WORKDIR /usr/local/x-ui
 COPY . .
 
 # 🚨 诊断步骤：打印当前工作目录的文件列表和架构
-# 请在 GitHub Actions 日志中查看这几行的输出！
-RUN echo "--- DIAGNOSTIC START ---" && \
-    echo "Current Working Directory Files (ls -l):" && \
-    ls -l && \
-    echo "Target Architecture received: $TARGETARCH" && \
-    echo "--- DIAGNOSTIC END ---" && \
-    # 核心修正：根据 TARGETARCH 变量，选择并重命名正确的二进制文件为 'x-ui'
+# 核心修正：根据 TARGETARCH 变量，选择并重命名正确的二进制文件为 'x-ui'
+RUN target_file="" && \
     if [ "$TARGETARCH" = "amd64" ]; then \
-        echo "Attempting to rename xuiwpph_amd64 to x-ui..."; \
-        mv xuiwpph_amd64 x-ui; \
+        target_file="xuiwpph_amd64"; \
     elif [ "$TARGETARCH" = "arm64" ]; then \
-        echo "Attempting to rename xuiwpph_arm64 to x-ui..."; \
-        mv xuiwpph_arm64 x-ui; \
+        target_file="xuiwpph_arm64"; \
     else \
-        echo "Error: Unsupported architecture or missing binary. TARGETARCH=$TARGETARCH"; exit 1; \
-    fi
+        echo "Error: Unsupported architecture $TARGETARCH."; exit 1; \
+    fi && \
+    \
+    echo "Expected executable name: $target_file" && \
+    \
+    # 检查目标文件是否存在
+    if [ ! -f "$target_file" ]; then \
+        echo "Error: Required binary '$target_file' not found in the build context. Check spelling (case-sensitive!) and existence in your GitHub repo."; exit 1; \
+    fi && \
+    \
+    # 移动文件
+    echo "Attempting to rename $target_file to x-ui..."; \
+    mv "$target_file" x-ui
 
 # 3. 赋予可执行权限
 RUN chmod +x x-ui
