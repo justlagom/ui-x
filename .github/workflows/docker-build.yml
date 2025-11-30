@@ -40,7 +40,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=latest # 最新版本标签
-            type=sha,prefix={{date 'YYYYMMDD'}}-{{sha:7}}- # 包含日期的Git SHA短标签
+            type=sha,prefix={{date 'YYYYMMDD'}}
 
       # 构建并推送 Docker 镜像
       - name: Build and push Docker image
