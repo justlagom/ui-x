@@ -3,10 +3,11 @@ name: Docker Build and Publish Custom X-UI
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch:
+  workflow_dispatch: # 允许手动触发
 
 env:
   REGISTRY: ghcr.io
+  # 镜像名称：[你的用户名]/[仓库名] (例如: justlagom/x-ui-docker)
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
@@ -14,40 +15,39 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
+      packages: write # 需要写入 packages 的权限
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 登录 GitHub 镜像仓库 (GHCR)
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }} # GITHUB_TOKEN 是 Actions 自动创建的 Secret
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # 提取元数据（Tags, Labels）
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=latest
-            type=sha,prefix={{date 'YYYYMMDD'}}
+            type=raw,value=latest # 最新版本标签
+            type=sha,prefix={{date 'YYYYMMDD'}}-{{sha:7}}- # 包含日期的Git SHA短标签
 
       # 构建并推送 Docker 镜像
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: . 
+          context: . # 关键：从仓库的根目录（本地文件所在位置）构建
           file: ./Dockerfile 
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          # 关键修改：将 runner 的架构信息传递给 Dockerfile
-          build-args: |
-            TARGETARCH=${{ runner.arch }}
